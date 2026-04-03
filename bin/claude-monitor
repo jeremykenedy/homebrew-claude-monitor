@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# claude-monitor — CLI tool for managing Claude Monitor
+
+PLUGIN_DIR="$HOME/Documents/SwiftBar-plugins"
+SCRIPT="$PLUGIN_DIR/claude-stats.1m.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/jeremykenedy/claude-swiftbar-monitor/main/claude-stats.1m.sh"
+HOMEBREW_PREFIX=$(brew --prefix 2>/dev/null || echo "/opt/homebrew")
+INSTALL_SCRIPT="$HOMEBREW_PREFIX/opt/claude-monitor/install.sh"
+
+cmd="${1:-help}"
+
+case "$cmd" in
+  install)
+    bash "$INSTALL_SCRIPT"
+    ;;
+  update)
+    echo "📥 Updating claude-stats plugin..."
+    curl -fsSL "$SCRIPT_URL" -o "$SCRIPT"
+    chmod +x "$SCRIPT"
+    pkill -x SwiftBar 2>/dev/null || true
+    sleep 1
+    defaults write com.ameba.SwiftBar PluginDirectory "$PLUGIN_DIR"
+    open -g /Applications/SwiftBar.app
+    echo "✅ Updated and restarted SwiftBar"
+    ;;
+  restart)
+    pkill -x SwiftBar 2>/dev/null || true
+    sleep 1
+    defaults write com.ameba.SwiftBar PluginDirectory "$PLUGIN_DIR"
+    open -g /Applications/SwiftBar.app
+    echo "✅ SwiftBar restarted"
+    ;;
+  status)
+    echo ""
+    echo "🤖 Claude Monitor Status"
+    echo "========================"
+    pgrep -x SwiftBar > /dev/null && echo "✅ SwiftBar: running" || echo "❌ SwiftBar: not running"
+    [ -f "$SCRIPT" ] && echo "✅ Plugin: installed" || echo "❌ Plugin: not found"
+    PDIR=$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null)
+    [ -n "$PDIR" ] && echo "✅ Plugin dir: $PDIR" || echo "❌ Plugin dir: not set"
+    [ -f "$HOME/.claude/usage-cache.json" ] && echo "✅ Cache: exists" || echo "⚠️  Cache: not yet populated"
+    echo ""
+    ;;
+  help|--help|-h|*)
+    echo ""
+    echo "🤖 claude-monitor"
+    echo ""
+    echo "Usage:"
+    echo "  claude-monitor install    Set up everything and launch"
+    echo "  claude-monitor update     Update plugin to latest version"
+    echo "  claude-monitor restart    Restart SwiftBar"
+    echo "  claude-monitor status     Show installation status"
+    echo ""
+    ;;
+esac
